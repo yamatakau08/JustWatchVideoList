@@ -5,7 +5,7 @@ require 'pp'
 require 'selenium-webdriver'
 require 'nokogiri'
 
-JUSTWATCH_COUNTRY = 'us'
+JUSTWATCH_COUNTRY = 'jp'
 
 case JUSTWATCH_COUNTRY
 when 'jp'
@@ -56,18 +56,12 @@ loop do
   end
 
   # refer https://stackoverflow.com/questions/7327858/how-to-scroll-with-selenium
-  # check if elements exsits
+  # find the last element for scrolling next page
   xpath = "//*[@id=\"content\"]/div/div[2]/div[position()=#{title_cnt-1}]/title-card/track-title-control/div/div[1]/div/div/a/img"
-  elements = driver.find_element(:xpath,xpath) # use xpath is alread set
-  print "@@@@@ "
-  pp elements
+  elements = driver.find_element(:xpath,xpath)
 
   # scroll next page
   elements.location_once_scrolled_into_view
-=begin
-  my_element = driver.find_element(:xpath,xpath)
-  my_element.click
-=end
 
   sleep 2
 
