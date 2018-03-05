@@ -6,6 +6,7 @@ require 'selenium-webdriver'
 require 'nokogiri'
 
 JUSTWATCH_COUNTRY = 'us'
+USE_HEADLESS      = false
 
 case JUSTWATCH_COUNTRY
 when 'jp'
@@ -19,7 +20,16 @@ else
   exit
 end
 
-driver = Selenium::WebDriver.for :chrome
+if USE_HEADLESS
+  caps = Selenium::WebDriver::Remote::Capabilities.chrome(
+    chrome_options: {
+      args: %w[headless disable-gpu no-sandbox]
+    }
+  )
+  driver = Selenium::WebDriver.for :chrome, desired_capabilities: caps 
+else
+  driver = Selenium::WebDriver.for :chrome
+end
 
 # refer http://katsulog.tech/i-do-not-recommend-using-sleep-when-waiting-for-elements/
 wait = Selenium::WebDriver::Wait.new(:timeout => 10) 
@@ -35,41 +45,43 @@ end
 title_cnt = 1
 
 loop do
-  html = driver.page_source
 
-  # parse page by nokogiri
-  html_doc = Nokogiri::HTML(html)
+  # find_elements the video titles by xpath
   xpath = "//*[@id=\"content\"]/div/div[2]/div[position()>=#{title_cnt}]/title-card/track-title-control/div/div[1]/div/div/a/img"
-  elements = html_doc.xpath(xpath)
+  elements = driver.find_elements(:xpath,xpath) # refer https://groups.google.com/forum/#!topic/seleniumjp/QAUOtMd672k
 
-  title_cnt_1 = elements.size
-
+  # check if elements exist
   if elements.size > 0 then
-    puts "***** #{elements.size}"
+    puts "***** #{elements.size}" if false # for debug
     elements.each do |nodeset|
       puts "[#{title_cnt}] #{nodeset.attribute('alt')}"
       title_cnt += 1
     end
   else
-    puts "[ERROR] no element xpath:#{xpath}"
+    puts "[INFO] no more element xpath:#{xpath}"
     exit
   end
 
   # refer https://stackoverflow.com/questions/7327858/how-to-scroll-with-selenium
-  # check if elements exsits
+  # check if the last element exsits for scrolling next page
   xpath = "//*[@id=\"content\"]/div/div[2]/div[position()=#{title_cnt-1}]/title-card/track-title-control/div/div[1]/div/div/a/img"
-  elements = driver.find_element(:xpath,xpath) # use xpath is alread set
-  print "@@@@@ "
-  pp elements
+  elements = driver.find_element(:xpath,xpath)
 
   # scroll next page
   elements.location_once_scrolled_into_view
-=begin
-  my_element = driver.find_element(:xpath,xpath)
-  my_element.click
-=end
 
-  sleep 2
+  # wait until the first element is appear after the above scroll the page
+  begin
+    wait.until do
+      xpath = "//*[@id=\"content\"]/div/div[2]/div[position()=#{title_cnt}]/title-card/track-title-control/div/div[1]/div/div/a/img"
+      element = driver.find_element(:xpath,xpath)
+      break if element.displayed?
+    end
+  rescue Selenium::WebDriver::Error::TimeOutError => error
+    puts "[INFO] seems to be no more title!"
+    puts "[ERROR] #{error}"
+    break
+  end
 
 end
 
