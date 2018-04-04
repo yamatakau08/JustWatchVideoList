@@ -28,7 +28,14 @@ if USE_HEADLESS
   )
   driver = Selenium::WebDriver.for :chrome, desired_capabilities: caps 
 else
-  driver = Selenium::WebDriver.for :chrome
+  begin
+    driver = Selenium::WebDriver.for :chrome
+  rescue => err
+    warn("if you are in proxy environment, should set the environment no_proxy='127.0.0.1' !")
+    puts eval_cmd = "ENV['no_proxy'] = '127.0.0.1'"
+    eval(eval_cmd)
+    driver = Selenium::WebDriver.for :chrome
+  end
 end
 
 # refer http://katsulog.tech/i-do-not-recommend-using-sleep-when-waiting-for-elements/
